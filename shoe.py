@@ -1,6 +1,6 @@
 """The shoe module contains the Shoe class, which represents a shoe of cards"""
 from enum import Enum
-from cards import Card, Deck
+from cards import Card, Deck, Hand
 import random
 from configs import NumDecks
 from collections import UserList
@@ -18,11 +18,12 @@ class Shoe(UserList):
         for _ in range(self.num_decks):
             self.data.extend(Deck())
         self.shuffle()
-        print(f"Shoe reset with {len(self.data)} cards (num_decks={self.num_decks})")
+        # print(f"Shoe reset with {len(self.data)} cards (num_decks={self.num_decks})")
 
     def shuffle(self):
         """Shuffle the cards in the shoe"""
         random.shuffle(self.data)
+        pass
 
     @classmethod
     def fromEnum(cls, decks_enum: NumDecks):
@@ -39,6 +40,21 @@ class Shoe(UserList):
         for _ in range(num_cards):
             cards.append(self.pop())
         return cards
+
+    def removeHand(self, hand: Hand):
+        """Remove a hand from the shoe"""
+        for card in hand:
+            self.removeCard(card)
+
+    def removeCard(self, card: Card):
+        """Remove a card from the shoe"""
+        for i in range(len(self.data)):
+            if self.data[i] == card:
+                del self.data[i]
+                break
+        else:
+            raise ValueError(f"Card {card} not in shoe")
+        self.data.remove(card)
 
 
 if __name__ == "__main__":

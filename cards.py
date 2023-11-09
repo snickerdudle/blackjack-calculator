@@ -4,12 +4,16 @@ from collections import UserList
 from typing import Optional
 
 
+suits = ["♥️", "♣️", "♦️", "♠️"]
+card_values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+
+
 class Card:
-    def __init__(self, value: str, suit: str):
+    def __init__(self, value: str, suit: Optional[str] = None):
         # Value, like King or 9
         self.value = value
         # Suit, like Hearts or Clubs
-        self.suit = suit
+        self.suit = suit or random.choice(suits)
 
     def __str__(self):
         return self.__repr__()
@@ -18,17 +22,21 @@ class Card:
         return f"{self.value}{self.suit}".rjust(4)
 
     @property
-    def nums(self) -> list[int]:
-        """Returns the numerical value of the card in Blackjack"""
-        self.values = []
-        if self.value in ["J", "Q", "K"]:
-            self.values.append(10)
+    def num(self) -> int:
+        """Returns the numerical value of the card in Blackjack.
+
+        Returns 11 for an Ace, 10 for a face card, and the number for a number card."""
+        if self.value in card_values[-3:]:
+            return 10
         elif self.value == "A":
-            self.values.append(1)
-            self.values.append(11)
+            return 11
+        elif self.value.isdigit():
+            return int(self.value)
         else:
-            self.values.append(int(self.value))
-        return self.values
+            raise ValueError(f"Invalid card value: {self.value}")
+
+    def __eq__(self, other):
+        return self.value == other.value and self.suit == other.suit
 
 
 class Deck(UserList):
@@ -39,27 +47,8 @@ class Deck(UserList):
     def reset(self):
         """Reset the Deck to the original state, unsuffled."""
         self.data = []
-        for suit in [
-            "♥️",
-            "♣️",
-            "♦️",
-            "♠️",
-        ]:
-            for value in [
-                "A",
-                "2",
-                "3",
-                "4",
-                "5",
-                "6",
-                "7",
-                "8",
-                "9",
-                "10",
-                "J",
-                "Q",
-                "K",
-            ]:
+        for suit in suits:
+            for value in card_values:
                 self.append(Card(value, suit))
         return self
 
@@ -81,7 +70,7 @@ class Hand(UserList):
         """
         non_aces = [card for card in self if card.value != "A"]
         aces = [card for card in self if card.value == "A"]
-        value = sum([card.nums[0] for card in non_aces])
+        value = sum([card.num for card in non_aces])
         soft = False
 
         # Now look for the aces. We want to add them in the best way possible.
@@ -106,7 +95,10 @@ class Hand(UserList):
             s = "empty"
         else:
             s = ", ".join([str(card) for card in self])
-        return f"<{s}>"
+
+        value, soft = self.value()
+
+        return f"<{s}>({'S' if soft else ''}{value})"
 
     def isBlackjack(self) -> bool:
         """Returns whether or not the hand is a blackjack"""
@@ -115,6 +107,11 @@ class Hand(UserList):
     def isBust(self) -> bool:
         """Returns whether or not the hand is a bust"""
         return self.value()[0] > 21
+
+    @classmethod
+    def copyHand(cls, new_hand):
+        """Copies the cards in the hand to a new hand"""
+        return cls([card for card in new_hand])
 
 
 if __name__ == "__main__":
