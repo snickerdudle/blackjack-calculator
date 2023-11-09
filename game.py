@@ -6,10 +6,11 @@ from participants import Dealer, Player, ActionType
 from typing import Optional
 from collections import defaultdict
 import pickle
+from multiprocessing import Pool
 
 OUTPUT: bool = False
 COUNT_BLACKJACK_TOWARDS_ODDS: bool = False
-NUM_RUNS = 10_000
+NUM_RUNS = 100
 
 
 # Key: hand_value, first_card_value, action
@@ -162,42 +163,55 @@ class Game:
         return float(total) / n / bet
 
 
-if __name__ == "__main__":
-    game = Game(BasicGameConfig())
-    # game.simulateRound()
+# This function will be executed by the process pool
+def simulate(args):
+    config, num_runs, player_hand, dealer_hand, action, bet = args
+    game = Game(config)
+    try:
+        return game.simulateNRounds(
+            n=num_runs,
+            player_hand=player_hand,
+            dealer_hand=dealer_hand,
+            action=action,
+            bet=bet,
+        )
+    except ValueError:
+        return -1
 
+
+if __name__ == "__main__":
+    config = BasicGameConfig()
+    args_list = []
+
+    # Prepare arguments for each simulation that needs to run
     for value1 in card_values:
         card1 = Card(value1)
         for value2 in card_values:
             card2 = Card(value2)
-            print(f"Card1: {card1}, Card2: {card2}".rjust(20))
             hand = Hand([card1, card2])
             hand_value, soft = hand.value()
-
             for first_val in ["2", "3", "4", "5", "6", "7", "8", "9", "10", "A"]:
                 dealer_hand = Hand([Card(first_val)])
-                print(f"Val: {first_val}".rjust(10), end=" : ")
-
                 for action in ActionType:
-                    try:
-                        result = game.simulateNRounds(
-                            n=NUM_RUNS,
-                            player_hand=hand,
-                            dealer_hand=dealer_hand,
-                            action=action,
-                        )
-                    except ValueError:
-                        result = -1
-                    if action == ActionType.DOUBLE:
-                        result *= 2
-                    print(result, end=" | ")
-                    if card1.value == card2.value:
-                        pair_results[hand_value][first_val][action].append(result)
-                    elif soft:
-                        soft_results[hand_value][first_val][action].append(result)
-                    else:
-                        hard_results[hand_value][first_val][action].append(result)
-                print()
+                    args_list.append((config, NUM_RUNS, hand, dealer_hand, action, 1))
+
+    # Set up the process pool and start the simulations
+    with Pool(processes=20) as pool:
+        results = pool.map(simulate, args_list)
+
+    # Now unpack the results
+    for (config, num_runs, player_hand, dealer_hand, action, bet), result in zip(
+        args_list, results
+    ):
+        hand_value, soft = player_hand.value()
+        first_val = dealer_hand[0].value  # Assuming dealer_hand has at least one card
+
+        if player_hand[0].value == player_hand[1].value:
+            pair_results[hand_value][first_val][action].append(result)
+        elif soft:
+            soft_results[hand_value][first_val][action].append(result)
+        else:
+            hard_results[hand_value][first_val][action].append(result)
 
     print("Hard hands:")
     for table in [hard_results, soft_results, pair_results]:
