@@ -9,9 +9,9 @@ card_values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
 
 class Card:
-    def __init__(self, value: str, suit: Optional[str] = None):
+    def __init__(self, value: Optional[str] = None, suit: Optional[str] = None):
         # Value, like King or 9
-        self.value = value
+        self.value = value or random.choice(card_values)
         # Suit, like Hearts or Clubs
         self.suit = suit or random.choice(suits)
 

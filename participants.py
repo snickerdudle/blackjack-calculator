@@ -2,6 +2,14 @@
 from configs import DealerHitSoft17, DealerPeek
 from cards import Hand
 from shoe import Shoe
+from enum import Enum
+
+
+class ActionType(Enum):
+    HIT = 0
+    STAND = 1
+    DOUBLE = 2
+    SPLIT = 3
 
 
 class Player:
@@ -9,9 +17,26 @@ class Player:
         self.hand = Hand()
         self.money = money
 
-    def play(self, shoe: Shoe, dealer_hand: Hand):
+    def play(self, action: ActionType, shoe: Shoe, dealer_hand: Hand):
         """Play the player's hand"""
-        # print(f"Playing player {self.hand}")
+        if action == ActionType.HIT:
+            self.hand.extend(shoe.deal())
+            # print(f"Player hits: {self.hand}")
+        elif action == ActionType.STAND:
+            # print(f"Player stands: {self.hand}")
+            pass
+        elif action == ActionType.DOUBLE:
+            if len(self.hand) != 2:
+                raise ValueError("Can only double on first turn")
+            self.hand.extend(shoe.deal())
+            # print(f"Player doubles: {self.hand}")
+        elif action == ActionType.SPLIT:
+            if len(self.hand) != 2:
+                raise ValueError("Can only split on first turn")
+            if self.hand[0].value != self.hand[1].value:
+                raise ValueError("Can only split on equal cards")
+            self.hand = Hand([self.hand[0]] + shoe.deal())
+            # print(f"Player splits: {self.hand}")
 
     def win(self, bet: int = 1):
         """The player wins the hand"""
